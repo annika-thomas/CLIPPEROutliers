@@ -1,0 +1,167 @@
+import random
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
+import numpy as np
+import math
+
+# Function to generate random 2D points between 0 and 10 and append to array called points
+def generate_random_points(num_points):
+    points = []
+    for _ in range(num_points):
+        x = random.uniform(0, 10)
+        y = 2
+        points.append((x, y))
+    return points
+
+def plot_points_with_covariance(points, covariance):
+    fig, ax = plt.subplots()
+
+    # Plot the points
+    x = [point[0] for point in points]
+    y = [point[1] for point in points]
+    plt.scatter(x, y, label='Measured points')
+
+    # Calculate ellipse parameters
+    center = np.mean(points, axis=0)
+    width = np.sqrt(covariance[0, 0])
+    height = np.sqrt(covariance[1, 1])
+
+    map_points = []
+
+    # Draw covariance ellipses
+    for point in points:
+        ellipse = Ellipse(point, width, height, angle=0, color='blue', alpha=0.2)
+        ax.add_patch(ellipse)
+        x, y = point
+        distWidth = random.normalvariate(0, 0.25*width)
+        distHeight = random.normalvariate(0, 0.25*height)
+
+        # Random distances for X marker to be in bounds of covariance ellipse
+        mapX = x+distWidth
+        mapY = y+distHeight
+        ax.scatter(mapX, mapY, marker='x',color='red')
+
+        # Append map point to the matrix
+        map_points.append((mapX, mapY))
+
+    # Set plot limits and aspect ratio
+    ax.set_xlim(center[0] - 4 * width, center[0] + 4 * width)
+    ax.set_ylim(center[1] - 4 * height, center[1] + 4 * height)
+    ax.set_aspect('equal')
+
+    # Add legend
+    ax.legend()
+
+    plt.xlim([-2, 12])
+    plt.ylim([0, 5])
+
+    # Show the plot
+    #plt.show()
+
+    return map_points
+
+def calculate_mahala_distances(points, map_points, index1, index2):
+    # Extract the points of interest from the arrays
+    point1 = np.array(points[index1+1])
+    point2 = np.array(points[index2])
+    map_point1 = np.array(map_points[index1])
+    map_point2 = np.array(map_points[index2])
+
+    # Calculate the distance between the point means
+    mu_points = np.linalg.norm(point2 - point1)
+    mu_map_points = np.linalg.norm(map_point2 - map_point1)
+
+    # Toy parameters for standard deviation
+    std_pt1 = 1
+    std_pt2 = 1
+    std_map1 = 0.01
+    std_map2 = 0.01
+
+    # Standard deviation of differences
+    sigma_points = math.sqrt(std_pt1**2 + std_pt2**2)
+    sigma_map_points = math.sqrt(std_map1**2 + std_map2**2)
+
+    # Mahalanobis distance
+    mahala = abs(mu_points-mu_map_points)/(math.sqrt(sigma_map_points**2 + sigma_points**2))
+
+    # Print the distances
+    print("Distance between points:")
+    print(f"Point1: {point1}")
+    print(f"Point2: {point2}")
+    print("Distance between map points:")
+    print(f"Map Point1: {map_point1}")
+    print(f"Map Point2: {map_point2}")
+    print(f"Mahalanobis: {mahala}")
+
+    return mahala
+
+def calculate_euclid_distances(points, map_points, index1, index2):
+    # Extract the points of interest from the arrays
+    point1 = np.array(points[index1+1])
+    point2 = np.array(points[index2])
+    map_point1 = np.array(map_points[index1])
+    map_point2 = np.array(map_points[index2])
+
+    # Calculate the distance between the point means
+    mu_points = np.linalg.norm(point2 - point1)
+    mu_map_points = np.linalg.norm(map_point2 - map_point1)
+
+    # Toy parameters for standard deviation
+    std_pt1 = 1
+    std_pt2 = 1
+    std_map1 = 0.01
+    std_map2 = 0.01
+
+    # Standard deviation of differences
+    sigma_points = math.sqrt(std_pt1**2 + std_pt2**2)
+    sigma_map_points = math.sqrt(std_map1**2 + std_map2**2)
+
+    # Mahalanobis distance
+    mahala = abs(mu_points-mu_map_points)/(math.sqrt(sigma_map_points**2 + sigma_points**2))
+
+    # Print the distances
+    print("Distance between points:")
+    print(f"Point1: {point1}")
+    print(f"Point2: {point2}")
+    print("Distance between map points:")
+    print(f"Map Point1: {map_point1}")
+    print(f"Map Point2: {map_point2}")
+    print(f"Mahalanobis: {mahala}")
+
+    euclid = abs(mu_points - mu_map_points)
+
+    return euclid
+
+def main():
+    num_points = 8
+    points = generate_random_points(num_points)
+    std_dev_x = 1
+    std_dev_y = 0.2
+
+    # Covariance matrix
+    covariance = np.array([[std_dev_x ** 2, 0], [0, std_dev_y ** 2]])
+
+    map_points = plot_points_with_covariance(points, covariance)
+
+    index1 = 0
+    index2 = 2
+    calculate_mahala_distances(points, map_points, index1, index2)
+
+    num_iterations = 20
+    total_sum_mah = 0
+    total_sum_euc = 0
+    for _ in range(num_iterations):
+        points = generate_random_points(num_points)
+        map_points = plot_points_with_covariance(points, covariance)
+        resultMah = calculate_mahala_distances(points, map_points, 1, 6)
+        resultEuc = calculate_euclid_distances(points, map_points, 1, 6)
+        total_sum_mah += resultMah
+        total_sum_euc += resultEuc
+
+    averageMah = total_sum_mah / num_iterations
+    averageEuc = total_sum_euc / num_iterations
+    print(f"Average Mahalanobis difference between matches: {averageMah}")
+    print(f"Average Euclidean difference between matches: {averageEuc}")
+
+if __name__ == '__main__':
+    main()
