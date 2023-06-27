@@ -6,7 +6,7 @@
  */
 
 #include <iostream>
-
+#include <Eigen/Dense>
 #include "clipper/clipper.h"
 #include "clipper/utils.h"
 
@@ -28,12 +28,23 @@ void CLIPPER::scorePairwiseConsistency(const invariants::Data& D1,
 
   Eigen::MatrixXd M = Eigen::MatrixXd::Zero(m, m);
 
-#pragma omp parallel for shared(A_, D1, D2, M_, C_) if(parallelize_)
+//#pragma omp parallel for shared(A_, D1, D2, M_, C_) if(parallelize_)
   for (size_t k=0; k<m*(m-1)/2; ++k) {
     size_t i, j; std::tie(i, j) = utils::k2ij(k, m);
 
+    std::cout << k << std::endl;
+
+    std::cout << "i=" << i << std::endl;
+    std::cout << "j=" << j << std::endl;
+
+    std::cout << "A_(i,0)=" << A_(i,0) << std::endl;
+    std::cout << "A_(j,0)=" << A_(j,0) << std::endl;
+    std::cout << "A_(i,1)=" << A_(i,1) << std::endl;
+    std::cout << "A_(j,1)=" << A_(j,1) << std::endl;
+
     if (A_(i,0) == A_(j,0) || A_(i,1) == A_(j,1)) {
       // violates distinctness constraint
+      std::cout << "Kept a zero" << std::endl;
       continue;
     }
 
@@ -41,13 +52,28 @@ void CLIPPER::scorePairwiseConsistency(const invariants::Data& D1,
     // Evaluate the consistency of geometric invariants associated with ei, ej
     //
 
+    std::cout << "i=" << i << std::endl;
+    std::cout << "j=" << j << std::endl;
+    std::cout << "A_(i,0)=" << A_(i,0) << std::endl;
+    std::cout << "A_(j,0)=" << A_(j,0) << std::endl;
+
+    std::cout << "D1=" << D1 << std::endl;
+    std::cout << "d1i=" << D1.transpose().col(A_(i,0)) << std::endl;
+    //std::cout << "D1=" << D1 << std::endl;make
+
     // points to extract invariant from in D1
-    const auto& d1i = D1.col(A_(i,0));
-    const auto& d1j = D1.col(A_(j,0));
+    const auto& d1i = D1.transpose().col(A_(i,0));
+    const auto& d1j = D1.transpose().col(A_(j,0));
+
+    std::cout << D1.transpose().col(A_(i,0)) << std::endl;
+    std::cout << D1.transpose().col(A_(j,0)) << std::endl;
 
     // points to extract invariant from in D2
-    const auto& d2i = D2.col(A_(i,1));
-    const auto& d2j = D2.col(A_(j,1));
+    const auto& d2i = D2.transpose().col(A_(i,1));
+    const auto& d2j = D2.transpose().col(A_(j,1));
+
+    std::cout << D2.transpose().col(A_(i,1)) << std::endl;
+    std::cout << D2.transpose().col(A_(j,1)) << std::endl;
 
     const double scr = (*invariant_)(d1i, d1j, d2i, d2j);
     if (scr > params_.affinityeps) { // does not violate inconsistency constraint
